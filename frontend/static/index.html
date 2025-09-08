@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Video Editing Service (MVP)</title>
+    <style>
+      body{font-family:system-ui,Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px}
+      .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}
+      input,textarea,button,select{padding:10px;margin:6px 0;width:100%}
+      button{cursor:pointer}
+      .row{display:flex;gap:12px}
+      .row > *{flex:1}
+      .badge{display:inline-block;padding:4px 8px;border-radius:8px;background:#eee;margin-left:8px}
+      .success{color:green}
+      .error{color:#b00}
+      .muted{color:#666}
+    </style>
+  </head>
+  <body>
+    <h1>🎬 Video Editing Service (MVP)</h1>
+    <p class="muted">Set your API base URL then use the auth & project flows.</p>
+
+    <div class="card">
+      <label>API Base URL</label>
+      <input id="api" placeholder="http://127.0.0.1:8000" value="http://127.0.0.1:8000"/>
+    </div>
+
+    <div class="card">
+      <h2>Auth</h2>
+      <div class="row">
+        <div>
+          <h3>Signup</h3>
+          <input id="su_username" placeholder="username">
+          <input id="su_email" placeholder="email">
+          <input id="su_contact" placeholder="contact number">
+          <input id="su_password" placeholder="password" type="password">
+          <select id="su_role">
+            <option value="customer">customer</option>
+            <option value="editor">editor</option>
+            <option value="admin">admin</option>
+          </select>
+          <button onclick="signup()">Signup</button>
+        </div>
+        <div>
+          <h3>Login</h3>
+          <input id="li_username" placeholder="username">
+          <input id="li_password" placeholder="password" type="password">
+          <button onclick="login()">Login</button>
+          <div id="token" class="badge"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Customer: Create Project</h2>
+      <textarea id="instructions" placeholder="Describe your video requirements..."></textarea>
+      <input id="budget" type="number" placeholder="Max budget">
+      <input id="files" type="file" multiple>
+      <button onclick="createProject()">Create Project</button>
+      <div id="create_status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Editor: Available Projects</h2>
+      <button onclick="listAvailable()">List Available</button>
+      <div id="avail"></div>
+    </div>
+
+    <script>
+      let access_token = null;
+      function apiBase(){ return document.getElementById('api').value; }
+      function headers(){ return access_token ? { 'Authorization': 'Bearer '+access_token } : {}; }
+
+      async function signup(){
+        const payload = {
+          username: document.getElementById('su_username').value,
+          email: document.getElementById('su_email').value,
+          contact: document.getElementById('su_contact').value,
+          password: document.getElementById('su_password').value,
+          role: document.getElementById('su_role').value
+        };
+        const res = await fetch(apiBase()+"/auth/signup",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        alert(res.ok ? "Signed up!" : "Signup failed");
+      }
+      async function login(){
+        const fd = new URLSearchParams();
+        fd.append("username", document.getElementById('li_username').value);
+        fd.append("password", document.getElementById('li_password').value);
+        const res = await fetch(apiBase()+"/auth/login", {method:"POST", body:fd});
+        const js = await res.json();
+        if(res.ok){ access_token = js.access_token; document.getElementById('token').innerText = js.role; } else { alert(js.detail||"Login failed"); }
+      }
+      async function createProject(){
+        const fd = new FormData();
+        fd.append("instructions", document.getElementById('instructions').value);
+        fd.append("max_budget", document.getElementById('budget').value || "0");
+        const files = document.getElementById('files').files;
+        for(const f of files){ fd.append("files", f); }
+        const res = await fetch(apiBase()+"/projects", {method:"POST", headers:headers(), body:fd});
+        const js = await res.json();
+        document.getElementById('create_status').innerText = res.ok ? "Created project #"+js.id : (js.detail||"Failed");
+      }
+      async function listAvailable(){
+        const res = await fetch(apiBase()+"/projects/available", {headers:headers()});
+        const js = await res.json();
+        document.getElementById('avail').innerHTML = (Array.isArray(js)?js:[]).map(p=>`<div>Project #${p.id} — budget ₹${p.max_budget} — status ${p.status} <button onclick="accept(${p.id})">Accept</button></div>`).join("");
+      }
+      async function accept(id){
+        const res = await fetch(apiBase()+"/projects/"+id+"/accept", {method:"POST", headers:headers()});
+        alert(res.ok ? "Accepted!" : "Failed");
+      }
+    </script>
+  </body>
+</html>
