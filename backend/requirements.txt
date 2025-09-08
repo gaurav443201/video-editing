@@ -6,3 +6,4 @@ python-jose
 gunicorn
 pydantic[email]
 email-validator
+python-multipart
