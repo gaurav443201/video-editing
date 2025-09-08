@@ -1,19 +1,15 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from .routers import auth, projects, payments, admin, editors
 
-app = FastAPI(title="Video Editing Service API", version="0.1.0")
+app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.get("/")
+def root():
+    return {"message": "Video Editing Service Backend is live!"}
 
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(projects.router, prefix="/projects", tags=["projects"])
-app.include_router(editors.router, prefix="/editors", tags=["editors"])
-app.include_router(payments.router, prefix="/payments", tags=["payments"])
-app.include_router(admin.router, prefix="/admin", tags=["admin"])
+# include routers
+app.include_router(auth.router)
+app.include_router(projects.router)
+app.include_router(payments.router)
+app.include_router(admin.router)
+app.include_router(editors.router)
